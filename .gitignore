@@ -1,0 +1,20 @@
+*.iml
+.gradle
+.kotlin
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Release signing — never commit (scripts/setup-signing.sh)
+keystore.properties
+*.jks
+*.keystore
+
+# Personal training data and the external design prototype stay local (the repo is public)
+/klimmzug-tracker-*.xlsx
+/klimmzug-tracker-*.html

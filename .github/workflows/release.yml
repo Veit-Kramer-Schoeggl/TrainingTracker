@@ -1,0 +1,95 @@
+# Publishes a new app version: triggered by pushing a tag like v1.2.0 (scripts/release.sh does that).
+# Builds the signed APK and creates a GitHub release with the APK and update.json. The installed
+# apps read update.json of the latest release and offer the update.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the annotated tag's message becomes the release notes
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25 # gradle/gradle-daemon-jvm.properties
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Tag must match appVersionName
+        run: |
+          version=$(grep -E '^appVersionName=' gradle.properties | cut -d= -f2 | tr -d '[:space:]')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match appVersionName=$version in gradle.properties"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Restore signing key
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret RELEASE_KEYSTORE_BASE64 is missing - run scripts/setup-signing.sh once"
+            exit 1
+          fi
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "RELEASE_STORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      # No configuration cache here: it would store the signing secrets in Gradle's cache.
+      - name: Test and build
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew --no-configuration-cache testReleaseUnitTest assembleRelease
+
+      - name: Prepare release files
+        run: |
+          mkdir dist
+          apk="dist/pullups-$VERSION.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+
+          # Read versionCode/minSdk from the APK itself, so update.json always matches it.
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2"
+          badging="$("$aapt2" dump badging "$apk")"
+          version_code=$(echo "$badging" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)
+          min_sdk=$(echo "$badging" | sed -n "s/^sdkVersion:'\([0-9]*\)'.*/\1/p" | head -1)
+          if ! "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner" verify "$apk"; then
+            echo "::error::APK is not signed"
+            exit 1
+          fi
+
+          notes="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed '/-----BEGIN PGP SIGNATURE-----/,$d')"
+          [ -n "$notes" ] || notes="Version $VERSION"
+          printf '%s\n' "$notes" > dist/release-notes.md
+
+          jq -n \
+            --argjson versionCode "$version_code" \
+            --arg versionName "$VERSION" \
+            --arg apkUrl "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/pullups-$VERSION.apk" \
+            --arg sha256 "$(sha256sum "$apk" | cut -d' ' -f1)" \
+            --argjson minSdk "$min_sdk" \
+            --arg releaseNotes "$notes" \
+            '{versionCode: $versionCode, versionName: $versionName, apkUrl: $apkUrl, sha256: $sha256, minSdk: $minSdk, releaseNotes: $releaseNotes}' \
+            > dist/update.json
+          cat dist/update.json
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/pullups-$VERSION.apk" dist/update.json \
+            --title "Pull-ups $VERSION" \
+            --notes-file dist/release-notes.md \
+            --latest
