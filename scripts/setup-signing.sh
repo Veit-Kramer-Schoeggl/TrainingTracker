@@ -22,7 +22,7 @@ else
   mkdir -p "$dir"
   chmod 700 "$dir"
   export KEY_PASSWORD
-  KEY_PASSWORD="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)"
+  KEY_PASSWORD="$(openssl rand -hex 24)"
   keytool -genkeypair -keystore "$store" -storetype PKCS12 -alias "$alias" \
     -keyalg RSA -keysize 4096 -validity 36500 -dname "$dname" \
     -storepass:env KEY_PASSWORD -keypass:env KEY_PASSWORD
@@ -44,5 +44,5 @@ printf '%s' "$alias" | gh secret set RELEASE_KEY_ALIAS
 printf '%s' "$password" | gh secret set RELEASE_KEY_PASSWORD
 echo "GitHub secrets set."
 echo
-echo "IMPORTANT: back up $store and the password in keystore.properties."
-echo "Without them no further updates can be published for installed apps."
+echo "IMPORTANT: back up the key now:  scripts/backup-signing.sh"
+echo "Without it no further updates can be published for installed apps."

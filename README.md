@@ -62,8 +62,16 @@ Auf dem Emulator getestet (1.0.0 → 1.0.1 → 1.0.2 → 1.0.3, Daten jeweils er
 - **Google Play Protect** kann bei jedem neuen APK „App-Scan empfohlen“ anzeigen, weil es die App
   nicht aus dem Play Store kennt. Dann „App scannen“ und danach „Installieren“ tippen.
 
-**Erstinstallation:** auf dem Handy die Release-Seite des Repos öffnen, das APK herunterladen und
-installieren.
+**Erstinstallation (per APK):**
+
+1. Auf dem Handy <https://github.com/Veit-Kramer-Schoeggl/TrainingTracker/releases/latest> öffnen
+   und `pullups-<version>.apk` herunterladen.
+2. Die Datei öffnen. Android fragt einmalig, ob der Browser Apps installieren darf: erlauben.
+3. Falls Google Play Protect „App-Scan empfohlen“ zeigt: „App scannen“, dann „Installieren“.
+4. Daten übernehmen: im alten HTML-Tracker „Als Excel exportieren“ tippen (das ist der neueste
+   Stand), dann in der App „Daten aus Excel importieren“ und die Datei wählen.
+
+Alternativ per USB-Kabel: `adb install pullups-<version>.apk`.
 
 ## Einmalig: Signaturschlüssel einrichten
 
@@ -72,10 +80,32 @@ scripts/setup-signing.sh
 ```
 
 Das Skript erzeugt den Release-Schlüssel (`~/.android/trainingtracker/release.jks`) und
-`keystore.properties` (beide per `.gitignore` ausgeschlossen) und hinterlegt beides als
-GitHub-Secrets für den Release-Workflow.
-**Schlüssel und Passwort sicher aufbewahren** (Passwortmanager und eine Offline-Kopie). Ohne sie
-lassen sich keine Updates mehr für bereits installierte Apps veröffentlichen.
+`keystore.properties` mit dem Passwort (beide per `.gitignore` ausgeschlossen) und hinterlegt beides
+als GitHub-Secrets für den Release-Workflow.
+
+### Schlüssel sichern
+
+Ohne Schlüssel **und** Passwort lassen sich keine Updates mehr für die installierte App bauen. Sie
+müsste dann neu installiert werden, und die Daten auf dem Handy wären weg. Die GitHub-Secrets
+zählen nicht als Sicherung, weil GitHub sie nicht mehr herausgibt.
+
+1. `scripts/backup-signing.sh` ausführen. `gpg` fragt nach einer Passphrase und erstellt
+   `~/pullups-signaturschluessel-<datum>.tar.gpg` (AES-256-verschlüsselt, enthält Schlüssel und
+   Passwort).
+2. Die Passphrase im Passwortmanager speichern oder aufschreiben und sicher verwahren.
+3. Die `.gpg`-Datei an **zwei Orten** ablegen, z. B. in Google Drive und auf einem USB-Stick.
+   Verschlüsselt ist das unbedenklich.
+4. Prüfen: `gpg -d ~/pullups-signaturschluessel-<datum>.tar.gpg | tar -tvf -` muss `release.jks`
+   und `keystore.properties` auflisten.
+
+**Wiederherstellen** (z. B. auf einem neuen PC):
+
+```bash
+mkdir -p ~/.android/trainingtracker
+gpg -d pullups-signaturschluessel-<datum>.tar.gpg | tar -xf - -C ~/.android/trainingtracker
+mv ~/.android/trainingtracker/keystore.properties <Projektordner>/
+# storeFile in keystore.properties auf ~/.android/trainingtracker/release.jks setzen (absoluter Pfad)
+```
 
 ## Neue Version veröffentlichen
 
