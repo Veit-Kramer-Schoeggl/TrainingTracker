@@ -112,6 +112,11 @@ class MainViewModel(
     private val _messages = Channel<UiMessage>(Channel.BUFFERED)
     val messages: Flow<UiMessage> = _messages.receiveAsFlow()
 
+    private val _updateFound = Channel<Unit>(Channel.CONFLATED)
+
+    /** "Nach Updates suchen" found a new version — the UI scrolls up to the update notice. */
+    val updateFound: Flow<Unit> = _updateFound.receiveAsFlow()
+
     init {
         viewModelScope.launch {
             val previous = settings.swapLastRunVersionCode(BuildConfig.VERSION_CODE)
@@ -268,7 +273,7 @@ class MainViewModel(
             when (val result = updates.check()) {
                 UpdateCheckResult.UpToDate -> show("Du hast die neueste Version (${BuildConfig.VERSION_NAME}).")
                 is UpdateCheckResult.Error -> show(result.message)
-                is UpdateCheckResult.Available -> Unit
+                is UpdateCheckResult.Available -> _updateFound.trySend(Unit)
             }
             checkingForUpdates = false
         }

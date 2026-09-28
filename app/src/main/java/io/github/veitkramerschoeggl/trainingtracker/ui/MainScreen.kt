@@ -116,6 +116,11 @@ private fun MainScreen(viewModel: MainViewModel, data: TrainingData, accentColor
         }
     }
 
+    // The footer's update check found a version: jump to the top, where the notice appears.
+    LaunchedEffect(viewModel) {
+        viewModel.updateFound.collect { listState.animateScrollToItem(0) }
+    }
+
     // Android asks the user to confirm the installation; launch its dialog while we are visible.
     LaunchedEffect(updateState) {
         val state = updateState
