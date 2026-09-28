@@ -250,7 +250,15 @@ class UpdateManager(
             setInstallReason(PackageManager.INSTALL_REASON_USER)
             setPackageSource(PackageInstaller.PACKAGE_SOURCE_DOWNLOADED_FILE)
             // Once the app has installed itself, later updates may need no extra confirmation.
-            setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            // MIUI/HyperOS rejects such silent self-updates ("Permission denied" ->
+            // STATUS_FAILURE_ABORTED), so Xiaomi devices always get the system dialog.
+            setRequireUserAction(
+                if (Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
+                    PackageInstaller.SessionParams.USER_ACTION_REQUIRED
+                } else {
+                    PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED
+                },
+            )
         }
         val sessionId = installer.createSession(params)
         try {
