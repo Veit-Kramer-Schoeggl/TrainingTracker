@@ -9,9 +9,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Compares the app's statistics with what the HTML prototype (klimmzug-tracker-7.html) renders
- * for the same data. `prototype-golden.json` was produced by running the prototype's own
- * JavaScript on a synthetic dataset (444 sets across a year boundary, pauses, streaks, ties).
+ * Compares the app's statistics with what the HTML prototype (klimmzug-tracker-9.html) renders
+ * for the same data. `prototype-golden.json` is produced by tools/prototype-golden.js, which runs
+ * the prototype's own JavaScript on a synthetic dataset (444 sets across a year boundary, pauses,
+ * streaks, ties).
  */
 class PrototypeParityTest {
     private val golden = JSONObject(javaClass.classLoader!!.getResource("prototype-golden.json")!!.readText())
@@ -93,11 +94,18 @@ class PrototypeParityTest {
     }
 
     @Test
-    fun weekList() {
+    fun weekListWithBestWeekMarked() {
+        // (label, total, is the best week — the prototype appends " ★" to its label)
         val expectedWeeks = expected.getJSONArray("weeks").objects { _, row ->
-            (row as JSONArray).let { it.getString(0).replace(Regex("\\s+"), " ") to it.getInt(1) }
+            (row as JSONArray).let {
+                val label = it.getString(0)
+                Triple(label.removeSuffix(" ★").replace(Regex("\\s+"), " "), it.getInt(1), label.endsWith(" ★"))
+            }
         }
-        assertEquals(expectedWeeks, weeks.asReversed().map { GermanFormat.weekLabel(it.week) to it.total })
+        assertEquals(
+            expectedWeeks,
+            weeks.asReversed().map { Triple(GermanFormat.weekLabel(it.week), it.total, it.week == stats.bestWeek?.week) },
+        )
     }
 
     private fun <T> JSONArray.objects(transform: (Int, Any) -> T): List<T> = (0 until length()).map { transform(it, get(it)) }

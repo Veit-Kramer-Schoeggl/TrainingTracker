@@ -43,7 +43,7 @@ fun StatsSection(stats: TrainingStats, expanded: Boolean, onToggle: () -> Unit, 
     Column(modifier) {
         StatRow(spacing = 8) {
             StatBox("Gesamt", GermanFormat.number(stats.total), accentBorder = true)
-            StatBox("Bestleistung", stats.best.toString())
+            StatBox("Bestleistung", stats.best.toString(), sub = "pro Tag")
             StatBox("Ø / Woche", stats.weekAverage.toString())
             StatBox("Ø / Tag", stats.dayAverage.toString())
         }
@@ -74,14 +74,14 @@ private fun StatDetails(stats: TrainingStats) {
         }
         StatRow {
             StatBox("Längster Streak", GermanFormat.days(streak?.days ?: 0), sub = streakRange)
-            StatBox("Reps im Streak", (streak?.reps ?: 0).toString(), sub = "im längsten Streak")
+            StatBox("Reps im längsten Streak", (streak?.reps ?: 0).toString())
         }
         StatRow {
             StatBox("Längste Pause", GermanFormat.days(stats.longestPause), sub = "Tage inaktiv")
-            StatBox("Ø letzte 10 Tage", stats.averageLast10Days.toString())
+            StatBox("Ø / Tag", stats.averageLast10Days.toString(), sub = "letzte 10 Tage")
         }
         StatRow {
-            StatBox("Ø letzte 4 Wochen", stats.averageLast4Weeks.toString())
+            StatBox("Ø / Woche", stats.averageLast4Weeks.toString(), sub = "letzte 4 Wochen")
             StatBox("Ø / Satz (30 Tage)", stats.averagePerSetLast30Days.toString())
         }
         MonthList(stats.months)

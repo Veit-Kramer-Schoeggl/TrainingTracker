@@ -87,22 +87,28 @@ fun DayItem(
     }
 }
 
-/** One collapsible week of the "Wochen" tab. */
+/** One collapsible week of the "Wochen" tab; the best week is highlighted with the accent and ★. */
 @Composable
-fun WeekBlock(week: TrainingWeek, expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+fun WeekBlock(week: TrainingWeek, isBest: Boolean, expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val accent = LocalAccent.current
     val rotation by animateFloatAsState(if (expanded) 180f else 0f, tween(200), label = "weekArrow")
-    Column(modifier.card(14.dp)) {
+    Column(modifier.card(14.dp, border = if (isBest) accent.dim else Palette.Border)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Palette.WeekHeader)
+                // Prototype: `background: var(--acc-dim)20` — the accent at 0x20 alpha over the card.
+                .background(if (isBest) accent.dim.copy(alpha = 0x20 / 255f) else Palette.WeekHeader)
                 .plainClickable(onClick = onToggle)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(GermanFormat.weekLabel(week.week), modifier = Modifier.weight(1f), fontSize = 12.sp, color = Palette.Muted)
+            Text(
+                GermanFormat.weekLabel(week.week) + if (isBest) " ★" else "",
+                modifier = Modifier.weight(1f),
+                fontSize = 12.sp,
+                color = if (isBest) accent.main else Palette.Muted,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(week.total.toString(), fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = accent.main)
                 DropdownArrow(Palette.Faint, rotation, width = 9.dp)

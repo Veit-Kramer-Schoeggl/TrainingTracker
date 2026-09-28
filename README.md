@@ -1,7 +1,7 @@
 # Pull-ups – Klimmzug Tracker (Android)
 
 Android-App zum Erfassen von Klimmzügen mit Auswertung. Design und Verhalten folgen dem
-HTML-Prototyp `klimmzug-tracker-7.html` (externe Vorgabe, liegt nicht im Repo).
+HTML-Prototyp `klimmzug-tracker-9.html` (externe Vorgabe, liegt nicht im Repo).
 
 ## Funktionen
 
@@ -145,8 +145,23 @@ python3 -m http.server 8765
 - Wird beim Bearbeiten das Datum auf einen Tag mit vorhandenen Einträgen gelegt, wird der Wert dort
   addiert. Der Prototyp überschreibt diesen Tag ohne Nachfrage.
 - Löschen lässt sich rückgängig machen.
+- Beste Woche: Im Prototyp bleibt der Kopf ungetönt, weil `background: var(--acc-dim)20` kein
+  gültiges CSS ist. Die App setzt die gemeinte leichte Akzent-Tönung um.
 - Neu hinzugekommen sind der Excel-Import, der Update-Hinweis und die Fußzeile mit Version und
   Update-Suche.
+
+## Neue Designversion übernehmen
+
+1. Die neue Prototyp-Datei mit der vorigen vergleichen, z. B. mit
+   `diff <(sed '/const seed=\[/,/^  \];/d' alt.html) <(sed '/const seed=\[/,/^  \];/d' neu.html)`
+   (blendet die eingebauten Beispieldaten aus).
+2. Die Änderungen in `ui/` umsetzen.
+3. Die Erwartungswerte des Statistik-Tests neu aus dem Prototyp erzeugen und die Tests laufen
+   lassen:
+   ```bash
+   node tools/prototype-golden.js ~/Downloads/klimmzug-tracker-N.html > app/src/test/resources/prototype-golden.json
+   ./gradlew testDebugUnitTest
+   ```
 
 ## Lizenzhinweise
 

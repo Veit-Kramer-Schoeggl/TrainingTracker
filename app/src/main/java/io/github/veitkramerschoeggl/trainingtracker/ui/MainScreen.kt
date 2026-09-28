@@ -136,7 +136,8 @@ private fun MainScreen(viewModel: MainViewModel, data: TrainingData, accentColor
     val chartValues = remember(data, tab, chartRange) {
         Stats.chartValues(data.days, data.weeks, perWeek = tab == HistoryTab.WEEKS, range = chartRange, today = data.today)
     }
-    val entryIndex = 1 + (if (showUpdate) 1 else 0) + (if (hasData) 2 else 0)
+    // header, update notice, statistics
+    val entryIndex = 1 + (if (showUpdate) 1 else 0) + (if (hasData) 1 else 0)
 
     Scaffold(
         containerColor = Palette.Background,
@@ -174,9 +175,6 @@ private fun MainScreen(viewModel: MainViewModel, data: TrainingData, accentColor
                 item(key = "stats") {
                     StatsSection(data.stats, statsExpanded, onToggle = { statsExpanded = !statsExpanded }, modifier = Modifier.contentWidth())
                 }
-                item(key = "tabs") {
-                    Tabs(tab, onSelect = { tab = it }, modifier = Modifier.contentWidth().padding(bottom = 20.dp))
-                }
             }
             item(key = "entry") {
                 EntryCard(
@@ -200,6 +198,9 @@ private fun MainScreen(viewModel: MainViewModel, data: TrainingData, accentColor
                         onClick = { exportLauncher.launch(viewModel.exportFileName()) },
                         modifier = Modifier.contentWidth().padding(bottom = 24.dp),
                     )
+                }
+                item(key = "tabs") {
+                    Tabs(tab, onSelect = { tab = it }, modifier = Modifier.contentWidth().padding(bottom = 20.dp))
                 }
             }
             if (data.days.size >= 2) {
@@ -239,6 +240,7 @@ private fun MainScreen(viewModel: MainViewModel, data: TrainingData, accentColor
                     val key = week.week.key
                     WeekBlock(
                         week = week,
+                        isBest = week.week == data.stats.bestWeek?.week,
                         expanded = key !in closedWeeks,
                         onToggle = { closedWeeks = if (key in closedWeeks) closedWeeks - key else closedWeeks + key },
                         modifier = Modifier.animateItem().contentWidth().padding(bottom = 12.dp),
@@ -284,7 +286,8 @@ private fun Header(selected: AccentColor, onSelect: (AccentColor) -> Unit, modif
                 }
             }
         }
-        Text("KLIMMZUG TRACKER", fontSize = 11.sp, letterSpacing = 3.sp, color = Palette.Muted)
+        Text("KLIMMZUG TRACKER", modifier = Modifier.padding(bottom = 6.dp), fontSize = 11.sp, letterSpacing = 3.sp, color = Palette.Muted)
+        Text("Pull-Hard by Bernhard", fontSize = 12.sp, letterSpacing = 2.sp, color = Palette.Muted)
     }
 }
 
